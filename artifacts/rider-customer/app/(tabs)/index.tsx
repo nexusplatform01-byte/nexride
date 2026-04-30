@@ -19,7 +19,14 @@ import { Brand } from "@/components/Brand";
 import { PressableScale } from "@/components/PressableScale";
 import { RideTypeIcon } from "@/components/RideTypeIcon";
 import { WebMap } from "@/components/WebMap";
-import { calcFare, GULU_CENTER, NamedLocation, PICKUP_LOCATION, POPULAR_PLACES } from "@/constants/gulu";
+import {
+  calcFare,
+  GULU_CENTER,
+  NamedLocation,
+  NEARBY_RIDERS,
+  PICKUP_LOCATION,
+  POPULAR_PLACES,
+} from "@/constants/gulu";
 import { CURRENCY, RIDE_OPTIONS } from "@/constants/rides";
 import { useNominatim } from "@/hooks/useNominatim";
 import { useOSRM } from "@/hooks/useOSRM";
@@ -27,19 +34,21 @@ import { useColors } from "@/hooks/useColors";
 
 type Phase = "idle" | "searching" | "route";
 
-const SHEET_HEIGHT = 430;
+const WEB_TAB_BAR_H = 84;
 
 export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+
   const topInset = Platform.OS === "web" ? 67 : insets.top;
-  const bottomInset = Platform.OS === "web" ? 34 : 0;
+  const tabBarH = Platform.OS === "web" ? WEB_TAB_BAR_H : insets.bottom + 49;
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [query, setQuery] = useState("");
   const [destination, setDestination] = useState<NamedLocation | null>(null);
-  const [selectedRide, setSelectedRide] = useState("economy");
+  const [pickupLocation, setPickupLocation] = useState<NamedLocation>(PICKUP_LOCATION);
+  const [selectedRide, setSelectedRide] = useState("motorbike");
   const [offerFare, setOfferFare] = useState(0);
 
   const { results, loading: searchLoading, search, clear } = useNominatim();
@@ -67,6 +76,10 @@ export default function HomeScreen() {
     return () => clearTimeout(t);
   }, [query]);
 
+  const handleLocationFound = useCallback((lat: number, lng: number) => {
+    setPickupLocation({ lat, lng, name: "Your location" });
+  }, []);
+
   const selectDestination = useCallback(
     async (place: NamedLocation) => {
       Haptics.selectionAsync();
@@ -74,9 +87,9 @@ export default function HomeScreen() {
       setPhase("route");
       setQuery("");
       clear();
-      await fetchRoute(PICKUP_LOCATION, place);
+      await fetchRoute(pickupLocation, place);
     },
-    [fetchRoute, clear]
+    [fetchRoute, clear, pickupLocation]
   );
 
   const handleMapTap = useCallback(
@@ -88,9 +101,9 @@ export default function HomeScreen() {
       setPhase("route");
       setQuery("");
       clear();
-      await fetchRoute(PICKUP_LOCATION, place);
+      await fetchRoute(pickupLocation, place);
     },
-    [phase, fetchRoute, clear]
+    [phase, fetchRoute, clear, pickupLocation]
   );
 
   const resetJourney = () => {
@@ -103,31 +116,27 @@ export default function HomeScreen() {
 
   const suggestions = query.length >= 2 ? results : POPULAR_PLACES;
 
-  const showRoute =
-    destination && (route || routeLoading);
-
-  const mapPickup = PICKUP_LOCATION;
-  const mapDest = destination ?? undefined;
-  const mapRoute = route?.coords;
-
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      {/* MAP */}
+      {/* MAP — always full screen behind */}
       <View style={styles.mapFill}>
         <WebMap
-          pickup={mapPickup}
-          destination={mapDest}
-          routeCoords={mapRoute}
+          pickup={pickupLocation}
+          destination={destination ?? undefined}
+          routeCoords={route?.coords}
           onTap={handleMapTap}
+          onLocationFound={handleLocationFound}
           recenterRef={recenterRef}
           center={GULU_CENTER}
-          zoom={14}
+          showRiders={phase === "idle"}
+          nearbyRiders={NEARBY_RIDERS}
         />
       </View>
 
-      {/* ─── IDLE PHASE ─── */}
+      {/* ══════════════ IDLE PHASE ══════════════ */}
       {phase === "idle" && (
         <>
+          {/* Top bar */}
           <View style={[styles.topBar, { top: topInset + 8 }]}>
             <PressableScale style={[styles.iconBtn, { backgroundColor: colors.card }]}>
               <Feather name="menu" size={20} color={colors.foreground} />
@@ -140,14 +149,15 @@ export default function HomeScreen() {
             </PressableScale>
           </View>
 
+          {/* Where to pill */}
           <Pressable
             onPress={() => setPhase("searching")}
             style={[
               styles.whereToPill,
-              { top: topInset + 70, backgroundColor: colors.card, shadowColor: colors.foreground },
+              { top: topInset + 70, backgroundColor: colors.card },
             ]}
           >
-            <View style={[styles.whereToIconWrap, { backgroundColor: colors.secondary }]}>
+            <View style={[styles.whereToIcon, { backgroundColor: colors.secondary }]}>
               <Feather name="search" size={16} color={colors.primary} />
             </View>
             <Text style={[styles.whereToText, { color: colors.mutedForeground }]}>
@@ -158,25 +168,45 @@ export default function HomeScreen() {
             </View>
           </Pressable>
 
-          <Pressable
-            style={[styles.recenter, { backgroundColor: colors.card, bottom: 140 + bottomInset }]}
-            onPress={() => recenterRef.current?.(GULU_CENTER.lat, GULU_CENTER.lng, 14)}
+          {/* Recenter */}
+          <PressableScale
+            style={[
+              styles.recenter,
+              { backgroundColor: colors.card, bottom: tabBarH + 100 },
+            ]}
+            onPress={() => recenterRef.current?.(pickupLocation.lat, pickupLocation.lng)}
           >
-            <Feather name="navigation" size={18} color={colors.foreground} />
-          </Pressable>
+            <Feather name="navigation" size={18} color={colors.primary} />
+          </PressableScale>
 
+          {/* Quick destinations — sits just ABOVE the tab bar */}
           <View
             style={[
               styles.idleSheet,
-              { backgroundColor: colors.card, paddingBottom: 24 + bottomInset },
+              {
+                backgroundColor: colors.card,
+                bottom: tabBarH,
+                shadowColor: colors.foreground,
+              },
             ]}
           >
             <View style={[styles.handle, { backgroundColor: colors.border }]} />
-            <Text style={[styles.idleSheetTitle, { color: colors.foreground }]}>
+            <View style={styles.ridersBadgeRow}>
+              <MaterialCommunityIcons name="motorbike" size={16} color={colors.primary} />
+              <Text style={[styles.ridersText, { color: colors.primary }]}>
+                {NEARBY_RIDERS.filter((r) => r.type === "motorbike").length} boda-bodas nearby
+              </Text>
+              <Text style={[styles.ridersDot, { color: colors.border }]}>•</Text>
+              <MaterialCommunityIcons name="car-outline" size={14} color={colors.mutedForeground} />
+              <Text style={[styles.ridersTextSub, { color: colors.mutedForeground }]}>
+                {NEARBY_RIDERS.filter((r) => r.type === "car").length} cars
+              </Text>
+            </View>
+            <Text style={[styles.idleTitle, { color: colors.foreground }]}>
               Quick destinations
             </Text>
             <FlatList
-              data={POPULAR_PLACES.slice(0, 4)}
+              data={POPULAR_PLACES.slice(0, 5)}
               keyExtractor={(item) => item.name}
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -184,10 +214,16 @@ export default function HomeScreen() {
               renderItem={({ item }) => (
                 <Pressable
                   onPress={() => selectDestination(item)}
-                  style={[styles.quickChip, { borderColor: colors.border, backgroundColor: colors.background }]}
+                  style={[
+                    styles.quickChip,
+                    { borderColor: colors.border, backgroundColor: colors.background },
+                  ]}
                 >
-                  <Feather name="map-pin" size={13} color={colors.primary} />
-                  <Text style={[styles.quickText, { color: colors.foreground }]} numberOfLines={1}>
+                  <Feather name="map-pin" size={12} color={colors.primary} />
+                  <Text
+                    style={[styles.quickText, { color: colors.foreground }]}
+                    numberOfLines={1}
+                  >
                     {item.name}
                   </Text>
                 </Pressable>
@@ -197,14 +233,13 @@ export default function HomeScreen() {
         </>
       )}
 
-      {/* ─── SEARCHING PHASE ─── */}
+      {/* ══════════════ SEARCHING PHASE ══════════════ */}
       {phase === "searching" && (
         <View style={[styles.searchOverlay, { backgroundColor: colors.background }]}>
-          {/* Search bar */}
           <View
             style={[
               styles.searchHeader,
-              { paddingTop: topInset + 12, backgroundColor: colors.card, shadowColor: colors.foreground },
+              { paddingTop: topInset + 12, backgroundColor: colors.card },
             ]}
           >
             <Pressable
@@ -213,79 +248,95 @@ export default function HomeScreen() {
             >
               <Feather name="arrow-left" size={20} color={colors.foreground} />
             </Pressable>
-
-            <View style={[styles.searchInputWrap, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <View
+              style={[
+                styles.searchInputWrap,
+                { backgroundColor: colors.background, borderColor: colors.border },
+              ]}
+            >
               <View style={[styles.searchDot, { backgroundColor: colors.destination }]} />
               <TextInput
                 ref={inputRef}
                 value={query}
                 onChangeText={setQuery}
-                placeholder="Search destination…"
+                placeholder="Search destination in Gulu…"
                 placeholderTextColor={colors.mutedForeground}
                 style={[styles.searchInput, { color: colors.foreground }]}
                 returnKeyType="search"
               />
               {(query.length > 0 || searchLoading) && (
                 <Pressable onPress={() => setQuery("")}>
-                  {searchLoading
-                    ? <ActivityIndicator size="small" color={colors.primary} />
-                    : <Feather name="x" size={16} color={colors.mutedForeground} />}
+                  {searchLoading ? (
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  ) : (
+                    <Feather name="x" size={16} color={colors.mutedForeground} />
+                  )}
                 </Pressable>
               )}
             </View>
           </View>
 
           {/* From row */}
-          <View style={[styles.fromRow, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
+          <View
+            style={[styles.fromRow, { borderBottomColor: colors.border, backgroundColor: colors.card }]}
+          >
             <View style={[styles.fromDot, { backgroundColor: colors.primary }]}>
               <View style={styles.fromDotInner} />
             </View>
             <View>
               <Text style={[styles.fromLabel, { color: colors.mutedForeground }]}>From</Text>
               <Text style={[styles.fromValue, { color: colors.foreground }]}>
-                {PICKUP_LOCATION.name}
+                {pickupLocation.name}
               </Text>
             </View>
           </View>
 
-          {/* Suggestions */}
           <FlatList
             data={suggestions as NamedLocation[]}
             keyExtractor={(item) => String((item as any).place_id ?? item.name)}
             contentContainerStyle={styles.suggestionList}
+            keyboardShouldPersistTaps="handled"
             ListHeaderComponent={
               query.length < 2 ? (
                 <>
                   <TouchableOpacity
                     onPress={() => {
-                      setPhase("searching");
-                    }}
-                    style={[styles.sugItem, { borderBottomColor: colors.border }]}
-                  >
-                    <View style={[styles.sugIconBox, { backgroundColor: colors.secondary }]}>
-                      <Feather name="crosshair" size={16} color={colors.primary} />
-                    </View>
-                    <View>
-                      <Text style={[styles.sugName, { color: colors.foreground }]}>Current location</Text>
-                      <Text style={[styles.sugSub, { color: colors.mutedForeground }]}>Use GPS position</Text>
-                    </View>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => {
-                      Haptics.selectionAsync();
+                      recenterRef.current?.(pickupLocation.lat, pickupLocation.lng);
                       setPhase("idle");
                     }}
                     style={[styles.sugItem, { borderBottomColor: colors.border }]}
                   >
-                    <View style={[styles.sugIconBox, { backgroundColor: colors.secondary }]}>
+                    <View style={[styles.sugIcon, { backgroundColor: colors.secondary }]}>
+                      <Feather name="crosshair" size={16} color={colors.primary} />
+                    </View>
+                    <View>
+                      <Text style={[styles.sugName, { color: colors.foreground }]}>
+                        Your location
+                      </Text>
+                      <Text style={[styles.sugSub, { color: colors.mutedForeground }]}>
+                        {pickupLocation.name}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setPhase("idle")}
+                    style={[styles.sugItem, { borderBottomColor: colors.border }]}
+                  >
+                    <View style={[styles.sugIcon, { backgroundColor: colors.secondary }]}>
                       <Feather name="map" size={16} color={colors.primary} />
                     </View>
                     <View>
-                      <Text style={[styles.sugName, { color: colors.foreground }]}>Set on map</Text>
-                      <Text style={[styles.sugSub, { color: colors.mutedForeground }]}>Tap anywhere on the map</Text>
+                      <Text style={[styles.sugName, { color: colors.foreground }]}>
+                        Set on map
+                      </Text>
+                      <Text style={[styles.sugSub, { color: colors.mutedForeground }]}>
+                        Tap anywhere on the Gulu map
+                      </Text>
                     </View>
                   </TouchableOpacity>
-                  <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>Popular places</Text>
+                  <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+                    Popular places in Gulu
+                  </Text>
                 </>
               ) : null
             }
@@ -294,15 +345,21 @@ export default function HomeScreen() {
                 onPress={() => selectDestination(item as NamedLocation)}
                 style={[styles.sugItem, { borderBottomColor: colors.border }]}
               >
-                <View style={[styles.sugIconBox, { backgroundColor: colors.secondary }]}>
+                <View style={[styles.sugIcon, { backgroundColor: colors.secondary }]}>
                   <Feather name="map-pin" size={16} color={colors.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.sugName, { color: colors.foreground }]} numberOfLines={1}>
+                  <Text
+                    style={[styles.sugName, { color: colors.foreground }]}
+                    numberOfLines={1}
+                  >
                     {(item as NamedLocation).name}
                   </Text>
                   {(item as any).display_name && (
-                    <Text style={[styles.sugSub, { color: colors.mutedForeground }]} numberOfLines={1}>
+                    <Text
+                      style={[styles.sugSub, { color: colors.mutedForeground }]}
+                      numberOfLines={1}
+                    >
                       {(item as any).display_name}
                     </Text>
                   )}
@@ -313,10 +370,9 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* ─── ROUTE PHASE ─── */}
+      {/* ══════════════ ROUTE PHASE ══════════════ */}
       {phase === "route" && (
         <>
-          {/* Top bar */}
           <View style={[styles.topBar, { top: topInset + 8 }]}>
             <PressableScale
               style={[styles.iconBtn, { backgroundColor: colors.card }]}
@@ -329,19 +385,20 @@ export default function HomeScreen() {
             </View>
             <PressableScale
               style={[styles.iconBtn, { backgroundColor: colors.card }]}
-              onPress={() => recenterRef.current?.(GULU_CENTER.lat, GULU_CENTER.lng, 14)}
+              onPress={() =>
+                recenterRef.current?.(pickupLocation.lat, pickupLocation.lng)
+              }
             >
-              <Feather name="navigation" size={18} color={colors.foreground} />
+              <Feather name="navigation" size={18} color={colors.primary} />
             </PressableScale>
           </View>
 
-          {/* Bottom sheet */}
           <View
             style={[
               styles.routeSheet,
               {
                 backgroundColor: colors.card,
-                paddingBottom: 20 + bottomInset,
+                bottom: tabBarH,
                 shadowColor: colors.foreground,
               },
             ]}
@@ -359,45 +416,51 @@ export default function HomeScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={[styles.locLabel, { color: colors.mutedForeground }]}>Pickup</Text>
                 <Text style={[styles.locValue, { color: colors.foreground }]} numberOfLines={1}>
-                  {PICKUP_LOCATION.name}
+                  {pickupLocation.name}
                 </Text>
               </View>
-              <Feather name="edit-2" size={14} color={colors.mutedForeground} />
+              <Feather name="edit-2" size={13} color={colors.mutedForeground} />
             </Pressable>
 
             <Pressable
-              onPress={() => { setPhase("searching"); setDestination(null); clearRoute(); }}
+              onPress={() => {
+                setPhase("searching");
+                setDestination(null);
+                clearRoute();
+              }}
               style={[styles.locRow, { borderBottomColor: colors.border }]}
             >
               <View style={[styles.locDotDest, { backgroundColor: colors.destination }]} />
               <View style={{ flex: 1 }}>
-                <Text style={[styles.locLabel, { color: colors.mutedForeground }]}>Destination</Text>
+                <Text style={[styles.locLabel, { color: colors.mutedForeground }]}>
+                  Destination
+                </Text>
                 <Text style={[styles.locValue, { color: colors.foreground }]} numberOfLines={1}>
                   {destination?.name ?? "—"}
                 </Text>
               </View>
-              <Feather name="edit-2" size={14} color={colors.mutedForeground} />
+              <Feather name="edit-2" size={13} color={colors.mutedForeground} />
             </Pressable>
 
-            {/* Distance / duration badge row */}
+            {/* Distance / duration */}
             {routeLoading ? (
-              <View style={styles.routeLoading}>
+              <View style={styles.loadingRow}>
                 <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={[styles.routeLoadingText, { color: colors.mutedForeground }]}>
+                <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>
                   Calculating route…
                 </Text>
               </View>
             ) : route ? (
-              <View style={styles.metaBadgeRow}>
+              <View style={styles.metaRow}>
                 <View style={[styles.metaBadge, { backgroundColor: colors.secondary }]}>
-                  <Feather name="map" size={13} color={colors.primary} />
-                  <Text style={[styles.metaBadgeText, { color: colors.primary }]}>
+                  <Feather name="map" size={12} color={colors.primary} />
+                  <Text style={[styles.metaText, { color: colors.primary }]}>
                     {route.distanceKm.toFixed(1)} km
                   </Text>
                 </View>
                 <View style={[styles.metaBadge, { backgroundColor: colors.secondary }]}>
-                  <Feather name="clock" size={13} color={colors.primary} />
-                  <Text style={[styles.metaBadgeText, { color: colors.primary }]}>
+                  <Feather name="clock" size={12} color={colors.primary} />
+                  <Text style={[styles.metaText, { color: colors.primary }]}>
                     ~{route.durationMin} min
                   </Text>
                 </View>
@@ -429,11 +492,25 @@ export default function HomeScreen() {
                       },
                     ]}
                   >
-                    <RideTypeIcon type={r.id} size={20} color={active ? colors.primaryForeground : colors.primary} />
-                    <Text style={[styles.ridePillName, { color: active ? colors.primaryForeground : colors.foreground }]}>
+                    <RideTypeIcon
+                      type={r.id}
+                      size={20}
+                      color={active ? colors.primaryForeground : colors.primary}
+                    />
+                    <Text
+                      style={[
+                        styles.ridePillName,
+                        { color: active ? colors.primaryForeground : colors.foreground },
+                      ]}
+                    >
                       {r.name}
                     </Text>
-                    <Text style={[styles.ridePillFare, { color: active ? colors.primaryForeground : colors.mutedForeground }]}>
+                    <Text
+                      style={[
+                        styles.ridePillFare,
+                        { color: active ? colors.primaryForeground : colors.mutedForeground },
+                      ]}
+                    >
                       {CURRENCY} {fare.toLocaleString()}
                     </Text>
                   </Pressable>
@@ -445,7 +522,7 @@ export default function HomeScreen() {
             <View style={[styles.fareRow, { borderColor: colors.border }]}>
               <Pressable
                 onPress={() => {
-                  setOfferFare((f) => Math.max(baseFare * 0.8, f - 500));
+                  setOfferFare((f) => Math.max(Math.round(baseFare * 0.75 / 100) * 100, f - 500));
                   Haptics.selectionAsync();
                 }}
                 style={[styles.fareBtn, { borderRightColor: colors.border }]}
@@ -471,7 +548,7 @@ export default function HomeScreen() {
               </Pressable>
             </View>
 
-            {/* CTA */}
+            {/* Request Ride CTA */}
             <PressableScale
               onPress={() => {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -479,7 +556,12 @@ export default function HomeScreen() {
               }}
               style={[styles.cta, { backgroundColor: colors.primary }]}
             >
-              <Feather name="zap" size={18} color={colors.primaryForeground} style={{ marginRight: 8 }} />
+              <MaterialCommunityIcons
+                name="motorbike"
+                size={20}
+                color={colors.primaryForeground}
+                style={{ marginRight: 8 }}
+              />
               <Text style={[styles.ctaText, { color: colors.primaryForeground }]}>
                 Request Ride
               </Text>
@@ -543,18 +625,14 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
-  whereToIconWrap: {
+  whereToIcon: {
     width: 34,
     height: 34,
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
-  whereToText: {
-    flex: 1,
-    fontSize: 15,
-    fontFamily: "Inter_500Medium",
-  },
+  whereToText: { flex: 1, fontSize: 15, fontFamily: "Inter_500Medium" },
   whereToArrow: {
     width: 30,
     height: 30,
@@ -580,26 +658,42 @@ const styles = StyleSheet.create({
 
   idleSheet: {
     position: "absolute",
-    bottom: 0,
     left: 0,
     right: 0,
     paddingTop: 10,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    paddingBottom: 18,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: -4 },
     shadowRadius: 16,
     elevation: 10,
     zIndex: 10,
   },
-  idleSheetTitle: {
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
-    paddingHorizontal: 18,
+  handle: {
+    alignSelf: "center",
+    width: 40,
+    height: 4,
+    borderRadius: 2,
     marginBottom: 10,
-    marginTop: 4,
   },
-  quickRow: { paddingHorizontal: 16, gap: 8, paddingBottom: 4 },
+  ridersBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 18,
+    marginBottom: 6,
+  },
+  ridersText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  ridersDot: { fontSize: 12 },
+  ridersTextSub: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  idleTitle: {
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
+    paddingHorizontal: 18,
+    marginBottom: 8,
+  },
+  quickRow: { paddingHorizontal: 16, gap: 8, paddingBottom: 2 },
   quickChip: {
     flexDirection: "row",
     alignItems: "center",
@@ -608,8 +702,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
+    maxWidth: 160,
   },
-  quickText: { fontSize: 12, fontFamily: "Inter_500Medium", maxWidth: 100 },
+  quickText: { fontSize: 12, fontFamily: "Inter_500Medium", flexShrink: 1 },
 
   searchOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -643,11 +738,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
   },
-  searchDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
+  searchDot: { width: 10, height: 10, borderRadius: 5 },
   searchInput: {
     flex: 1,
     fontSize: 15,
@@ -670,15 +761,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  fromDotInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#FFFFFF",
-  },
+  fromDotInner: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#fff" },
   fromLabel: { fontSize: 10, fontFamily: "Inter_500Medium" },
   fromValue: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
-
   sectionLabel: {
     fontSize: 11,
     fontFamily: "Inter_600SemiBold",
@@ -687,7 +772,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 10,
   },
-  suggestionList: { paddingBottom: 24 },
+  suggestionList: { paddingBottom: 40 },
   sugItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -696,7 +781,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  sugIconBox: {
+  sugIcon: {
     width: 38,
     height: 38,
     borderRadius: 12,
@@ -710,9 +795,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: 0,
     paddingHorizontal: 18,
     paddingTop: 10,
+    paddingBottom: 18,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     shadowOpacity: 0.14,
@@ -720,16 +805,7 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     elevation: 14,
     zIndex: 10,
-    maxHeight: SHEET_HEIGHT,
   },
-  handle: {
-    alignSelf: "center",
-    width: 42,
-    height: 4,
-    borderRadius: 2,
-    marginBottom: 12,
-  },
-
   locRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -749,19 +825,10 @@ const styles = StyleSheet.create({
   locLabel: { fontSize: 10, fontFamily: "Inter_500Medium" },
   locValue: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
 
-  routeLoading: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 10,
-  },
-  routeLoadingText: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  loadingRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 8 },
+  loadingText: { fontSize: 13, fontFamily: "Inter_400Regular" },
 
-  metaBadgeRow: {
-    flexDirection: "row",
-    gap: 8,
-    paddingVertical: 10,
-  },
+  metaRow: { flexDirection: "row", gap: 8, paddingVertical: 8 },
   metaBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -770,7 +837,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
   },
-  metaBadgeText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  metaText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
 
   rideRow: { gap: 8, paddingVertical: 4, paddingRight: 8 },
   ridePill: {
@@ -782,8 +849,8 @@ const styles = StyleSheet.create({
     gap: 3,
     minWidth: 80,
   },
-  ridePillName: { fontSize: 12, fontFamily: "Inter_700Bold" },
-  ridePillFare: { fontSize: 11, fontFamily: "Inter_500Medium" },
+  ridePillName: { fontSize: 11, fontFamily: "Inter_700Bold" },
+  ridePillFare: { fontSize: 10, fontFamily: "Inter_500Medium" },
 
   fareRow: {
     flexDirection: "row",
@@ -805,7 +872,7 @@ const styles = StyleSheet.create({
 
   cta: {
     marginTop: 10,
-    paddingVertical: 15,
+    paddingVertical: 14,
     borderRadius: 14,
     flexDirection: "row",
     alignItems: "center",
