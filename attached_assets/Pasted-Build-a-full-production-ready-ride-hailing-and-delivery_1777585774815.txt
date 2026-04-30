@@ -1,0 +1,173 @@
+Build a full production-ready ride-hailing and delivery platform similar to Uber / SafeBoda, designed for launch in a city like Gulu, Uganda, and scalable nationwide.
+
+The system includes:
+
+Customer mobile app
+Rider (Boda Boda) mobile app
+Backend API
+Real-time GPS tracking system
+In-app wallet & mobile money payments
+Map-based booking and routing system
+
+❌ DO NOT include admin dashboard in mobile app (it will be built separately as a web system).
+
+🗺️ 1. MAP SYSTEM (CORE ENGINE)
+
+Use the following stack:
+
+MapLibre GL (map rendering engine)
+OpenStreetMap (map data source)
+OSRM (routing engine for distance + ETA)
+Map Features:
+Real-time interactive map
+Live rider movement tracking
+Route drawing from rider → pickup → destination
+Smooth animated movement of vehicles
+Zoom, tilt, and rotation (3D-like experience)
+Dark/light map mode support
+🏍️ 2. REALISTIC 3D ICONS (VERY IMPORTANT)
+
+The map MUST use custom 3D-style icons, not flat markers.
+
+RIDER ICON (BODA BODA):
+Realistic 3D motorcycle icon
+Colored (green / orange / blue variants for status)
+Slight shadow effect for depth
+Animated movement when riding
+Direction rotates based on movement
+
+Reference style:
+
+Motorcycle location pin icon style (3D look like real bike on map pointer)
+Example concept: motorcycle inside map pin marker (modern 3D UI style)
+CUSTOMER ICON:
+Simple human avatar or circle marker
+Blue or neutral color
+Pulsing animation when searching
+PICKUP LOCATION:
+Green glowing pin icon
+DESTINATION:
+Red flag or red pin icon
+ROUTE LINE:
+Blue glowing animated path line following roads
+📱 3. CUSTOMER APP
+
+Features:
+
+Phone number login (OTP)
+Auto-detect location (GPS)
+Select destination on map
+See nearby riders in real time
+View estimated fare before booking
+Request ride or delivery
+Track rider live on map
+In-app chat + masked call system
+Payment inside app (wallet/mobile money)
+Trip history
+Rate rider after trip
+🏍️ 4. RIDER (BODA) APP
+
+Features:
+
+Rider registration + verification
+Go online/offline toggle
+Receive ride requests in real time
+Accept or reject trips
+Navigation to pickup + destination
+Live GPS sharing every 2–5 seconds
+Earnings dashboard
+Trip history
+Withdraw earnings to mobile money
+📍 5. REAL-TIME GPS SYSTEM
+
+Use Firebase Realtime Database:
+
+Rider sends GPS coordinates continuously
+Customer receives instant updates
+Map updates rider movement smoothly
+System calculates ETA dynamically
+💳 6. PAYMENT SYSTEM (IN-APP WALLET)
+
+Use mobile money integration:
+
+MTN Mobile Money
+Airtel Money
+Payment Flow:
+Customer requests ride
+System calculates fare automatically
+Customer pays into platform wallet (escrow system)
+Money is locked during trip
+After trip completion:
+Rider receives 80–90%
+Platform takes 10–20% commission
+Transaction stored in wallet history
+🧭 7. TRIP FLOW LOGIC
+Customer selects ride
+System finds nearest riders using GPS distance
+Request sent to multiple riders (top closest)
+First rider to accept is assigned
+Payment is locked in escrow
+Rider navigates to pickup location
+Live tracking starts
+Trip begins
+Rider moves to destination
+System confirms completion automatically OR via rider + customer confirmation
+Payment is released instantly
+🔐 8. COMMUNICATION SYSTEM
+
+Inside app:
+
+In-app chat system between rider and customer
+Masked call system (no real phone numbers exposed)
+Secure communication only within platform
+📊 9. PRICING SYSTEM
+
+Automatic fare calculation:
+
+Formula:
+Base fare + (distance × rate) + time factor
+
+Example:
+
+Base: 1,500 UGX
+Per km: 1,000 UGX
+Per minute: 100 UGX
+
+System must:
+
+Show fare before booking
+Prevent manual rider price changes
+⚙️ 10. BACKEND SYSTEM
+
+Use Firebase:
+
+Authentication (OTP login)
+Firestore (users, trips, payments)
+Realtime Database (GPS tracking)
+Cloud Functions (fare calculation, trip completion, matching system)
+🧠 11. MATCHING SYSTEM (CORE LOGIC)
+Detect riders within radius
+Sort by nearest distance
+Send request to top 3 riders
+First accept wins
+Auto reassign if rejected
+📱 12. PERFORMANCE REQUIREMENTS
+Fast loading (under 2 seconds)
+Smooth map animations
+Low data usage optimization
+Works on low and mid-range Android phones
+🏁 13. SYSTEM GOAL
+
+The platform must feel:
+
+professional
+trusted
+safe
+modern
+scalable like Uber / SafeBoda
+
+Designed for:
+
+Gulu launch first
+expansion to Lira, Arua, Kampala
+later nationwide and East Africa scaling

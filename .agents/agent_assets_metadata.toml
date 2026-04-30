@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "YUXQKd4m1IxgYwAueTDYi"
+uri = "file://artifacts/rider-customer/assets/images/icon.png"
+type = "image"
+title = "generated_image"
