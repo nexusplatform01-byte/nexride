@@ -552,7 +552,19 @@ export default function HomeScreen() {
             <PressableScale
               onPress={() => {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                router.push("/driver-match");
+                router.push({
+                  pathname: "/driver-match",
+                  params: {
+                    fare: offerFare,
+                    rideType: selectedRide,
+                    distKm: route?.distanceKm.toFixed(1) ?? "0",
+                    durationMin: route?.durationMin ?? 0,
+                    destName: destination?.name ?? "",
+                    pickupName: pickupLocation.name,
+                    pickupLat: pickupLocation.lat,
+                    pickupLng: pickupLocation.lng,
+                  },
+                });
               }}
               style={[styles.cta, { backgroundColor: colors.primary }]}
             >

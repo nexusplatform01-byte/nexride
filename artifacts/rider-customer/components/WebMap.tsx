@@ -7,6 +7,7 @@ import { LatLng, RiderMarker } from "@/constants/gulu";
 type Props = {
   pickup?: LatLng;
   destination?: LatLng;
+  riderLocation?: LatLng;
   routeCoords?: [number, number][];
   onTap?: (lat: number, lng: number) => void;
   onLocationFound?: (lat: number, lng: number) => void;
@@ -15,8 +16,9 @@ type Props = {
   zoom?: number;
   showRiders?: boolean;
   nearbyRiders?: RiderMarker[];
+  fitBoundsOnRoute?: boolean;
 };
 
-export function WebMap({ destination }: Props) {
-  return <FakeMap variant={destination ? "route" : "drivers"} />;
+export function WebMap({ destination, riderLocation }: Props) {
+  return <FakeMap variant={riderLocation || destination ? "route" : "drivers"} />;
 }

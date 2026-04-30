@@ -1,0 +1,141 @@
+This is the exact professional flow used in Uber-style systems. I’ll explain clearly when to show:
+
+📍 route
+💰 price
+📏 distance (kilometers)
+🧭 ETA
+🔗 full integration flow
+
+so your system feels clean, fast, and trusted.
+
+🚦 1. WHEN EVERYTHING IS CALCULATED (MOST IMPORTANT RULE)
+
+You ONLY show route + price + kilometers AFTER destination is selected, NOT before.
+
+🧠 FULL CORRECT FLOW (REAL SYSTEM)
+🟢 STEP 1 — CUSTOMER OPENS APP
+Map loads
+Shows current location
+
+❌ DO NOT show price yet
+❌ DO NOT show route yet
+
+🟡 STEP 2 — CUSTOMER SELECTS DESTINATION
+
+(typing or map pin)
+
+👉 NOW system triggers calculation:
+
+Backend does:
+Distance calculation (km)
+Route calculation (OSRM)
+Time estimate (ETA)
+Fare calculation
+🔵 STEP 3 — SHOW TRIP PREVIEW (THIS IS CRITICAL SCREEN)
+
+ONLY NOW show:
+
+📍 ROUTE
+Blue line on map
+From pickup → destination
+📏 DISTANCE
+Example:
+“4.2 km”
+⏱️ TIME (ETA)
+Example:
+“12 minutes”
+💰 PRICE
+Example:
+“6,500 UGX”
+THIS SCREEN IS CALLED:
+
+👉 “Trip Preview Screen”
+
+🔘 STEP 4 — CUSTOMER CONFIRMS
+
+Button:
+👉 “Request Ride”
+
+OR:
+👉 “Book Delivery”
+
+🟣 STEP 5 — RIDER SEARCH STARTS
+System finds nearest rider
+Sends request
+Rider accepts
+🟠 STEP 6 — ROUTE BECOMES LIVE TRACKING MODE
+
+Now route changes from:
+
+PRE-BOOKING ROUTE (static)
+
+➡️ Just preview
+
+LIVE ROUTE (dynamic)
+
+➡️ Rider moving in real time
+
+Customer sees:
+
+Rider moving on map
+Route updating live
+ETA changing in real time
+🧭 2. WHEN EXACTLY EACH THING IS SHOWN
+Feature	When it appears
+Map	App opens
+Destination input	Immediately
+Route line	AFTER destination is selected
+Distance (km)	AFTER destination is selected
+Price	AFTER destination is selected
+Rider location	AFTER match accepted
+Live movement	AFTER trip starts
+⚙️ 3. TECHNICAL LOGIC (VERY IMPORTANT)
+STEP A — GET COORDINATES
+Pickup: GPS location
+Destination: geocoded point
+STEP B — ROUTING ENGINE (OSRM)
+
+Returns:
+
+route geometry
+distance in meters
+travel time in seconds
+STEP C — PRICE CALCULATION
+
+Formula example:
+
+fare = base_fare + (distance_km × rate_per_km) + time_factor
+STEP D — FRONTEND DISPLAY
+
+Map shows:
+
+route polyline
+markers (pickup + destination)
+price card
+💡 4. BEST UX DESIGN RULE (VERY IMPORTANT)
+
+NEVER overwhelm user early.
+
+👉 Correct flow is:
+
+1. Map open
+2. Choose destination
+3. Show price + route + km
+4. Confirm ride
+5. Match rider
+6. Live tracking
+🚫 COMMON MISTAKE (DON’T DO THIS)
+
+❌ Showing price before destination
+❌ Showing route before selection
+❌ Showing rider before booking
+
+This makes apps confusing and unprofessional.
+
+🏆 5. PROFESSIONAL STANDARD (LIKE UBER / SAFEBODA)
+
+Apps like SafeBoda and Faras always:
+
+✔ Calculate AFTER destination
+✔ Show ONE clean preview screen
+✔ Then confirm booking

@@ -1,0 +1,125 @@
+1. WHEN BODA (RIDER) ACCEPTS A TRIP
+
+The system immediately sends a trip confirmation card to the customer.
+
+📱 2. WHAT CUSTOMER SHOULD SEE (FULL DETAILS)
+
+As soon as a rider accepts, the customer sees:
+
+👤 RIDER DETAILS CARD
+Rider Name: (e.g. “John M.”)
+Profile Photo
+Rider Rating (⭐ 4.8)
+Vehicle Type: Motorcycle
+Plate / Bike Number (important for safety)
+Distance from customer (e.g. “2.1 km away”)
+Estimated arrival time (ETA)
+Trip fare (final confirmed price)
+🏍️ VEHICLE INFO
+Bike color (optional but useful)
+Bike registration number
+Company branding (your platform logo on jacket/helmet)
+📍 LIVE MAP VIEW
+Rider icon appears on map (3D motorcycle icon)
+Route line from rider → customer
+Moving animation in real time
+🔘 ACTION BUTTONS FOR CUSTOMER
+
+Customer must have ONLY 3 main actions:
+
+✔ CONFIRM RIDE
+Confirms that they accept this rider
+❌ CANCEL RIDE
+Cancels before pickup (with possible fee rules)
+📞 CALL / CHAT RIDER
+In-app communication only (masked number)
+🧠 3. DO CUSTOMER NEED TO CONFIRM?
+
+YES — but in a smart way.
+
+There are 2 confirmation models:
+
+🥇 MODEL 1 (BEST – USED BY BIG APPS)
+
+👉 AUTO-CONFIRM AFTER ACCEPT
+
+Rider accepts
+Trip is automatically assigned
+
+Customer only gets notification:
+
+“John has accepted your ride”
+
+✔ No extra step needed
+✔ Faster experience
+
+🥈 MODEL 2 (OPTIONAL CONTROL MODE)
+
+Customer must press:
+
+👉 “Confirm Rider”
+
+Used when:
+
+premium safety mode
+new users
+high-value trips
+🔐 4. SAFETY CONFIRMATION SYSTEM (VERY IMPORTANT)
+
+To avoid fake riders:
+
+BEFORE STARTING TRIP:
+
+Customer should verify:
+
+Bike number matches app
+Rider face matches profile
+Rider name matches
+📍 5. AFTER CUSTOMER CONFIRMS
+
+System does:
+
+Locks trip (no new riders can join)
+Starts live tracking
+Activates payment escrow
+Shows navigation route
+🧭 6. TRIP START FLOW
+
+Once confirmed:
+
+“Rider is coming to pickup location”
+Live GPS movement starts
+ETA countdown begins
+💡 7. BEST PROFESSIONAL UX DESIGN (IMPORTANT)
+
+After acceptance screen should look like:
+
+TOP:
+Rider profile card
+MIDDLE:
+Large live map with animated rider icon
+BOTTOM:
+3 buttons only:
+Call
+Cancel
+Confirm (or auto-confirm)
+
+Keep it simple. No clutter.
+
+🚀 8. KEY RULE FOR YOUR SYSTEM
+
+👉 Customer must ALWAYS feel:
+
+“I know who is coming”
+“I can track them live”
+“I can trust this rider”
+
+That is what makes apps like SafeBoda successful.
+
+🏁 FINAL FLOW SUMMARY
+Rider accepts trip
+Customer sees full rider profile
+Live map tracking starts
+Customer confirms OR auto-confirms
+Trip begins
+Payment is locked in system
