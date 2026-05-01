@@ -1,0 +1,118 @@
+FIX ROUTING + DIRECTION LINE BETWEEN RIDER, CUSTOMER, AND DESTINATION
+
+Implement full routing system so that the map ALWAYS shows direction lines between:
+
+Rider → Customer (pickup)
+Customer → Destination
+Rider → Destination (during trip)
+
+Use:
+
+MapLibre GL (map)
+OSRM (routing API)
+Firebase (GPS updates)
+📍 1. CREATE ROUTE BETWEEN TWO POINTS
+
+Whenever two points exist, the system MUST call OSRM API:
+
+API FORMAT:
+https://router.project-osrm.org/route/v1/driving/{lng1},{lat1};{lng2},{lat2}?overview=full&geometries=geojson
+📦 2. EXTRACT ROUTE DATA
+
+From OSRM response:
+
+geometry.coordinates → route path (array of points)
+distance → meters
+duration → seconds
+🗺️ 3. DRAW ROUTE LINE ON MAP (MAPLIBRE)
+
+Convert coordinates into a GeoJSON LineString:
+
+{
+  "type": "Feature",
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [ [lng, lat], [lng, lat] ]
+  }
+}
+
+Add it as a source + layer in MapLibre.
+
+🎨 4. STYLE THE ROUTE LINE
+Color: Blue (main route)
+Width: 4–6px
+Smooth edges
+Rounded caps
+🔁 5. WHEN TO CREATE EACH ROUTE
+🟢 BEFORE BOOKING
+
+Create route:
+
+Customer → Destination
+🟡 AFTER RIDER ACCEPTS
+
+Create TWO routes:
+
+Route A (ACTIVE)
+Rider → Customer
+Color: Green or Yellow
+Route B (SECONDARY)
+Customer → Destination
+Color: Light Blue (faded)
+🔵 AFTER TRIP STARTS
+
+REMOVE:
+
+Rider → Customer route
+
+CREATE:
+
+Rider → Destination (main route)
+📡 6. LIVE UPDATE ROUTE (VERY IMPORTANT)
+
+Every 3–5 seconds:
+
+Get updated rider GPS
+Re-call OSRM:
+new rider position → target
+Update route line
+🧠 7. IMPORTANT: DO NOT DRAW STRAIGHT LINE
+
+❌ Wrong:
+
+straight line between two points
+
+✔ Correct:
+
+must follow real roads (OSRM route)
+📍 8. DEBUG CHECKLIST (WHY YOUR SYSTEM FAILED)
+
+Fix these:
+
+✔ Are you calling OSRM API?
+✔ Are coordinates in correct format (lng,lat)?
+✔ Are you converting response to GeoJSON?
+✔ Are you adding source + layer in MapLibre?
+✔ Are you updating map after data changes?
+
+⚙️ 9. FUNCTION LOGIC (SIMPLIFIED)
+
+Create function:
+
+getRoute(startLat, startLng, endLat, endLng)
+
+Steps:
+
+Call OSRM API
+Parse response
+Extract coordinates
+Update map route layer
+🏁 FINAL RESULT REQUIRED
+
+System must:
+
+✔ Show road-following route (not straight line)
+✔ Show rider → customer route when accepted
+✔ Show customer → destination route before booking
+✔ Switch to rider → destination route after trip starts
+✔ Update route live as rider moves

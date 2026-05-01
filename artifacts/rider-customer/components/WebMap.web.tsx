@@ -28,18 +28,18 @@ function injectLeafletCSS() {
   document.head.appendChild(link);
   const style = document.createElement("style");
   style.textContent = [
-    ".leaflet-container { background:#c9dfe8; font-family: inherit; }",
-    ".leaflet-control-zoom { display:none; }",
-    ".leaflet-control-attribution { font-size:9px; opacity:0.5; }",
-    ".riider-marker { display:flex;align-items:center;justify-content:center; }",
+    ".leaflet-container { background:#e8f0e0; font-family:inherit; }",
+    ".leaflet-control-zoom { border:none !important; }",
+    ".leaflet-control-zoom a { background:white !important; border-radius:8px !important; box-shadow:0 2px 8px rgba(0,0,0,0.18) !important; border:none !important; margin-bottom:4px !important; font-weight:bold; }",
+    ".leaflet-control-attribution { font-size:8px; opacity:0.55; background:rgba(255,255,255,0.7) !important; }",
   ].join("\n");
   document.head.appendChild(style);
 }
 
-// ─── Marker HTML ─────────────────────────────────────────────────────────────
+// ─── Marker HTML ──────────────────────────────────────────────────────────────
 
 const MOTO_NEARBY_HTML = `
-<div class="riider-marker" style="background:#0F3F5C;border:2px solid white;border-radius:10px;padding:4px 9px;display:flex;align-items:center;gap:5px;box-shadow:0 3px 10px rgba(15,63,92,0.35);cursor:pointer;">
+<div style="background:#0F3F5C;border:2px solid white;border-radius:10px;padding:4px 9px;display:flex;align-items:center;gap:5px;box-shadow:0 3px 10px rgba(15,63,92,0.4);cursor:pointer;white-space:nowrap;">
   <svg width="22" height="13" viewBox="0 0 22 13" fill="none">
     <circle cx="3.5" cy="10" r="2.5" stroke="white" stroke-width="1.4"/>
     <circle cx="18.5" cy="10" r="2.5" stroke="white" stroke-width="1.4"/>
@@ -48,11 +48,11 @@ const MOTO_NEARBY_HTML = `
     <rect x="9.5" y="3.5" width="6" height="2" rx="1" fill="white" opacity="0.85"/>
     <path d="M18 7.5 L21 5.5" stroke="white" stroke-width="1.3" stroke-linecap="round"/>
   </svg>
-  <span style="font-size:9px;font-weight:800;color:white;font-family:sans-serif;letter-spacing:0.3px;">BODA</span>
+  <span style="font-size:9px;font-weight:800;color:white;font-family:sans-serif;letter-spacing:0.5px;">BODA</span>
 </div>`;
 
 const CAR_NEARBY_HTML = `
-<div class="riider-marker" style="background:white;border:2px solid #7C8B99;border-radius:10px;padding:4px 9px;display:flex;align-items:center;gap:5px;box-shadow:0 3px 10px rgba(0,0,0,0.18);cursor:pointer;">
+<div style="background:white;border:2px solid #7C8B99;border-radius:10px;padding:4px 9px;display:flex;align-items:center;gap:5px;box-shadow:0 3px 10px rgba(0,0,0,0.18);cursor:pointer;white-space:nowrap;">
   <svg width="22" height="13" viewBox="0 0 22 13" fill="none">
     <path d="M4 8 L6 3 L16 3 L18 8 L18 11 L4 11 Z" stroke="#7C8B99" stroke-width="1.3" fill="#7C8B99" fill-opacity="0.12" stroke-linejoin="round"/>
     <circle cx="7" cy="11" r="2" stroke="#7C8B99" stroke-width="1.4"/>
@@ -79,12 +79,12 @@ const DEST_HTML = `
 
 const USER_LOCATION_HTML = `
 <div style="position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;">
-  <div style="position:absolute;width:24px;height:24px;border-radius:50%;background:rgba(26,115,232,0.2);animation:none;"></div>
-  <div style="width:14px;height:14px;border-radius:50%;background:#1a73e8;border:2.5px solid white;box-shadow:0 2px 8px rgba(26,115,232,0.5);"></div>
+  <div style="position:absolute;width:26px;height:26px;border-radius:50%;background:rgba(26,115,232,0.18);"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#1a73e8;border:2.5px solid white;box-shadow:0 2px 8px rgba(26,115,232,0.6);"></div>
 </div>`;
 
 const RIDER_MOTO_HTML = `
-<div style="background:#0F3F5C;border:3px solid white;border-radius:14px;padding:7px 12px;display:flex;align-items:center;gap:7px;box-shadow:0 4px 16px rgba(15,63,92,0.45);min-width:70px;">
+<div style="background:#0F3F5C;border:3px solid white;border-radius:14px;padding:7px 12px;display:flex;align-items:center;gap:7px;box-shadow:0 4px 18px rgba(15,63,92,0.5);min-width:70px;white-space:nowrap;">
   <svg width="28" height="17" viewBox="0 0 28 17" fill="none">
     <circle cx="4.5" cy="13" r="3.5" stroke="white" stroke-width="1.6"/>
     <circle cx="23.5" cy="13" r="3.5" stroke="white" stroke-width="1.6"/>
@@ -92,11 +92,10 @@ const RIDER_MOTO_HTML = `
     <path d="M13 6.5 L15.5 2.5 L21.5 6.5" stroke="white" stroke-width="1.4" fill="white" fill-opacity="0.25" stroke-linecap="round"/>
     <rect x="12" y="4" width="8" height="3" rx="1.5" fill="white" opacity="0.9"/>
     <path d="M23 9 L27 6" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-    <circle cx="14" cy="13" r="1" fill="white" opacity="0.5"/>
   </svg>
   <div>
     <div style="font-size:10px;font-weight:800;color:white;font-family:sans-serif;line-height:1.2;">RIDER</div>
-    <div style="font-size:8px;color:rgba(255,255,255,0.7);font-family:sans-serif;">En route</div>
+    <div style="font-size:8px;color:rgba(255,255,255,0.75);font-family:sans-serif;">En route</div>
   </div>
 </div>`;
 
@@ -141,18 +140,32 @@ export function WebMap({
       const map = L.map(domEl, {
         center: [defaultCenter.lat, defaultCenter.lng],
         zoom,
-        zoomControl: false,
-        preferCanvas: true,
+        zoomControl: true,
+        preferCanvas: false,
         maxBounds: GULU_BOUNDS,
         minZoom: GULU_MIN_ZOOM,
-        maxZoom: 19,
+        maxZoom: 20,
         bounceAtZoomLimits: false,
       });
 
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "© <a href='https://osm.org/copyright'>OSM</a>",
-        maxZoom: 19,
-      }).addTo(map);
+      // ── HOT tile layer: maximum detail for East Africa ──────────────────────
+      // Humanitarian OpenStreetMap Team tiles — best coverage of small roads,
+      // buildings, shops and local paths in African cities.
+      L.tileLayer(
+        "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
+        {
+          attribution:
+            '© <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors, Tiles style by <a href="https://www.hotosm.org/">HOT</a>',
+          subdomains: "abc",
+          maxZoom: 20,
+          maxNativeZoom: 20,
+          crossOrigin: true,
+          // Increase tile update speed
+          keepBuffer: 4,
+          updateWhenIdle: false,
+          updateWhenZooming: false,
+        }
+      ).addTo(map);
 
       mapRef.current = map;
 
@@ -164,6 +177,7 @@ export function WebMap({
         };
       }
 
+      // GPS location
       if (typeof navigator !== "undefined" && navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
@@ -171,8 +185,16 @@ export function WebMap({
             const { latitude, longitude } = pos.coords;
             onLocationFoundRef.current?.(latitude, longitude);
             userLocMarkerRef.current?.remove();
-            const icon = L.divIcon({ html: USER_LOCATION_HTML, className: "", iconSize: [24, 24], iconAnchor: [12, 12] });
-            userLocMarkerRef.current = L.marker([latitude, longitude], { icon, zIndexOffset: 500 }).addTo(map);
+            const icon = L.divIcon({
+              html: USER_LOCATION_HTML,
+              className: "",
+              iconSize: [24, 24],
+              iconAnchor: [12, 12],
+            });
+            userLocMarkerRef.current = L.marker([latitude, longitude], {
+              icon,
+              zIndexOffset: 500,
+            }).addTo(map);
             map.flyTo([latitude, longitude], GULU_DEFAULT_ZOOM, { duration: 1.2 });
           },
           () => {},
@@ -188,44 +210,72 @@ export function WebMap({
     };
   }, []);
 
-  // Pickup marker (blue dot)
+  // ── Pickup marker (blue dot) ────────────────────────────────────────────────
   useEffect(() => {
     if (!mapRef.current) return;
     import("leaflet").then((L) => {
       pickupMarkerRef.current?.remove();
       if (pickup) {
-        const icon = L.divIcon({ html: PICKUP_HTML, className: "", iconSize: [28, 28], iconAnchor: [14, 14] });
-        pickupMarkerRef.current = L.marker([pickup.lat, pickup.lng], { icon, zIndexOffset: 400 }).addTo(mapRef.current);
+        const icon = L.divIcon({
+          html: PICKUP_HTML,
+          className: "",
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+        });
+        pickupMarkerRef.current = L.marker([pickup.lat, pickup.lng], {
+          icon,
+          zIndexOffset: 400,
+        }).addTo(mapRef.current);
       }
     });
   }, [pickup?.lat, pickup?.lng]);
 
-  // Destination marker (green pin)
+  // ── Destination marker (green pin) ─────────────────────────────────────────
   useEffect(() => {
     if (!mapRef.current) return;
     import("leaflet").then((L) => {
       destMarkerRef.current?.remove();
       if (destination) {
-        const icon = L.divIcon({ html: DEST_HTML, className: "", iconSize: [32, 44], iconAnchor: [16, 44] });
-        destMarkerRef.current = L.marker([destination.lat, destination.lng], { icon, zIndexOffset: 400 }).addTo(mapRef.current);
-        mapRef.current.flyTo([destination.lat, destination.lng], 15, { duration: 0.8 });
+        const icon = L.divIcon({
+          html: DEST_HTML,
+          className: "",
+          iconSize: [32, 44],
+          iconAnchor: [16, 44],
+        });
+        destMarkerRef.current = L.marker([destination.lat, destination.lng], {
+          icon,
+          zIndexOffset: 400,
+        }).addTo(mapRef.current);
+        mapRef.current.flyTo(
+          [destination.lat, destination.lng],
+          GULU_DEFAULT_ZOOM,
+          { duration: 0.8 }
+        );
       }
     });
   }, [destination?.lat, destination?.lng]);
 
-  // Rider location marker (large motorbike)
+  // ── Rider location marker (large motorbike icon) ───────────────────────────
   useEffect(() => {
     if (!mapRef.current) return;
     import("leaflet").then((L) => {
       riderMarkerRef.current?.remove();
       if (riderLocation) {
-        const icon = L.divIcon({ html: RIDER_MOTO_HTML, className: "", iconSize: [94, 44], iconAnchor: [47, 22] });
-        riderMarkerRef.current = L.marker([riderLocation.lat, riderLocation.lng], { icon, zIndexOffset: 600 }).addTo(mapRef.current);
+        const icon = L.divIcon({
+          html: RIDER_MOTO_HTML,
+          className: "",
+          iconSize: [100, 44],
+          iconAnchor: [50, 22],
+        });
+        riderMarkerRef.current = L.marker([riderLocation.lat, riderLocation.lng], {
+          icon,
+          zIndexOffset: 600,
+        }).addTo(mapRef.current);
       }
     });
   }, [riderLocation?.lat, riderLocation?.lng]);
 
-  // Route polyline
+  // ── Route polyline (road-following via OSRM) ────────────────────────────────
   useEffect(() => {
     if (!mapRef.current) return;
     import("leaflet").then((L) => {
@@ -233,25 +283,45 @@ export function WebMap({
       routeLayersRef.current = [];
 
       if (routeCoords?.length) {
+        // OSRM returns [lng, lat] — flip to Leaflet's [lat, lng]
         const latlngs: [number, number][] = routeCoords.map(([lng, lat]) => [lat, lng]);
-        const casing = L.polyline(latlngs, { color: "#FFFFFF", weight: 10, opacity: 0.9 }).addTo(mapRef.current);
-        const line = L.polyline(latlngs, { color: "#0F3F5C", weight: 5, opacity: 1 }).addTo(mapRef.current);
+
+        // White casing for contrast
+        const casing = L.polyline(latlngs, {
+          color: "#FFFFFF",
+          weight: 10,
+          opacity: 0.95,
+          lineCap: "round",
+          lineJoin: "round",
+        }).addTo(mapRef.current);
+
+        // Main navy route line
+        const line = L.polyline(latlngs, {
+          color: "#0F3F5C",
+          weight: 5,
+          opacity: 1,
+          lineCap: "round",
+          lineJoin: "round",
+        }).addTo(mapRef.current);
+
         routeLayersRef.current = [casing, line];
 
         if (fitBoundsOnRoute && pickup && destination) {
+          const allLats = [pickup.lat, destination.lat];
+          const allLngs = [pickup.lng, destination.lng];
           mapRef.current.fitBounds(
             [
-              [Math.min(pickup.lat, destination.lat), Math.min(pickup.lng, destination.lng)],
-              [Math.max(pickup.lat, destination.lat), Math.max(pickup.lng, destination.lng)],
+              [Math.min(...allLats), Math.min(...allLngs)],
+              [Math.max(...allLats), Math.max(...allLngs)],
             ],
-            { padding: [80, 60], maxZoom: 17 }
+            { padding: [90, 60], maxZoom: GULU_DEFAULT_ZOOM }
           );
         }
       }
     });
   }, [routeCoords]);
 
-  // Nearby rider markers
+  // ── Nearby rider markers ────────────────────────────────────────────────────
   useEffect(() => {
     if (!mapRef.current) return;
     import("leaflet").then((L) => {
@@ -261,10 +331,17 @@ export function WebMap({
       if (showRiders && nearbyRiders.length) {
         nearbyRiders.forEach((r) => {
           const html = r.type === "motorbike" ? MOTO_NEARBY_HTML : CAR_NEARBY_HTML;
-          const w = r.type === "motorbike" ? 78 : 72;
-          const icon = L.divIcon({ html, className: "", iconSize: [w, 28], iconAnchor: [w / 2, 14] });
+          const w = r.type === "motorbike" ? 80 : 74;
+          const icon = L.divIcon({
+            html,
+            className: "",
+            iconSize: [w, 28],
+            iconAnchor: [w / 2, 14],
+          });
           riderMarkersRef.current.push(
-            L.marker([r.lat, r.lng], { icon, zIndexOffset: 300 }).addTo(mapRef.current)
+            L.marker([r.lat, r.lng], { icon, zIndexOffset: 300 }).addTo(
+              mapRef.current
+            )
           );
         });
       }
@@ -275,5 +352,5 @@ export function WebMap({
 }
 
 const styles = StyleSheet.create({
-  map: { flex: 1, backgroundColor: "#c9dfe8" },
+  map: { flex: 1, backgroundColor: "#e8f0e0" },
 });

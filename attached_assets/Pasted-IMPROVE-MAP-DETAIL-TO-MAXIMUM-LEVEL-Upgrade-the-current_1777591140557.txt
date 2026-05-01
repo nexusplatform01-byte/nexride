@@ -1,0 +1,116 @@
+IMPROVE MAP DETAIL TO MAXIMUM LEVEL
+
+Upgrade the current map system to display maximum geographic detail, including:
+
+All road types (major + minor + small paths)
+Shops, businesses, and POIs
+Buildings and house footprints
+Local paths, corridors, and service roads
+High-density labels (names visible at closer zoom levels)
+
+Use the existing stack:
+
+MapLibre GL (map rendering)
+OpenStreetMap (data source)
+🗺️ 1. ENABLE ALL ROAD TYPES (CRITICAL)
+
+Update map style to include ALL road classifications from OpenStreetMap:
+
+highway=primary
+highway=secondary
+highway=tertiary
+highway=residential
+highway=unclassified
+highway=service ← VERY IMPORTANT (small internal roads)
+highway=track
+highway=path ← for corridors, walkways
+highway=footway
+highway=cycleway
+
+Ensure all of them are rendered visibly with different widths and colors.
+
+🏠 2. SHOW BUILDINGS AND HOUSE STRUCTURES
+
+Enable rendering for:
+
+building=*
+
+Display:
+
+building outlines (light gray or subtle color)
+optional 3D extrusion (height effect if supported)
+🏪 3. SHOW ALL PLACES (POI / SHOPS / BUSINESSES)
+
+Enable all Point-of-Interest layers:
+
+amenity=* (restaurants, hospitals, schools, etc.)
+shop=* (retail shops, kiosks, markets)
+tourism=*
+office=*
+leisure=*
+
+Display:
+
+icon + name label
+visible at medium zoom levels
+🔤 4. INCREASE LABEL DENSITY (VERY IMPORTANT)
+
+Adjust style rules to:
+
+Reduce minimum zoom level for labels:
+Show shop names at zoom ≥ 15
+Show building/area names at zoom ≥ 16
+Increase label density (more names visible)
+Prevent aggressive label hiding
+
+Ensure labels do not disappear unnecessarily.
+
+🔍 5. INCREASE MAX ZOOM LEVEL
+
+Set:
+
+maxZoom = 20
+
+Ensure:
+
+Small roads appear at zoom ≥ 15
+Buildings appear at zoom ≥ 16
+Full detail at zoom 18–20
+🎨 6. APPLY HIGH-DETAIL MAP STYLE
+
+Use or create a style similar to:
+
+OSM Bright (high detail)
+OR custom MapLibre style with:
+thin lines for small roads
+clear contrast between road types
+visible building outlines
+readable labels
+🧊 7. OPTIONAL 3D BUILDINGS (IF SUPPORTED)
+
+Enable 3D effect:
+
+extrude buildings using fill-extrusion
+add height if data exists
+enable tilt/rotation for 3D view
+⚙️ 8. TILE SOURCE REQUIREMENT
+
+Ensure tile source provides full OpenStreetMap detail.
+
+If current tiles are limited:
+
+switch to higher-detail tile provider
+OR configure self-hosted tiles (full OSM data)
+📡 9. DATA COMPLETENESS HANDLING
+
+If some places (shops, houses, roads) are missing:
+
+Ensure system supports updated OpenStreetMap data
+Allow future integration with custom-added map data
+📱 10. PERFORMANCE OPTIMIZATION
+
+Even with high detail:
+
+Keep map smooth and fast
+Load details progressively by zoom level
+Avoid clutter at low zoom levels

@@ -16,7 +16,7 @@ export const GULU_BOUNDS: [[number, number], [number, number]] = [
 ];
 
 export const GULU_MIN_ZOOM = 12;
-export const GULU_DEFAULT_ZOOM = 16;
+export const GULU_DEFAULT_ZOOM = 18;
 
 export const POPULAR_PLACES: NamedLocation[] = [
   { name: "Gulu University", lat: 2.7634, lng: 32.2989 },

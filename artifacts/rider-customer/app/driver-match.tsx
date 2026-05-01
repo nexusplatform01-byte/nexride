@@ -76,6 +76,13 @@ export default function DriverMatchScreen() {
 
   const { route: riderRoute, fetchRoute } = useOSRM();
 
+  // Immediately fetch route if starting already in matched phase (e.g. direct URL)
+  useEffect(() => {
+    if (phase === "matched") {
+      fetchRoute(riderLocation, customerLocation);
+    }
+  }, []);
+
   const nativeDriver = Platform.OS !== "web";
 
   useEffect(() => {
@@ -156,7 +163,7 @@ export default function DriverMatchScreen() {
           riderLocation={phase !== "searching" ? riderLocation : undefined}
           routeCoords={phase !== "searching" ? riderRoute?.coords : undefined}
           center={mapCenter}
-          zoom={14}
+          zoom={16}
           fitBoundsOnRoute={false}
         />
       </View>
