@@ -72,16 +72,53 @@ export default function DriverMatchScreen() {
   const cardAnim = useRef(new Animated.Value(debugPhase === "matched" ? 1 : 0)).current;
 
   const customerLocation: LatLng = { lat: pickupLat, lng: pickupLng };
-  const riderLocation: LatLng = { lat: MOCK_RIDER.lat, lng: MOCK_RIDER.lng };
+
+  // Live rider position — animates toward customer every second
+  const [riderPos, setRiderPos] = useState<LatLng>({ lat: MOCK_RIDER.lat, lng: MOCK_RIDER.lng });
+  const [etaSecondsLeft, setEtaSecondsLeft] = useState(MOCK_RIDER.etaMin * 60);
+  const riderPosRef = useRef<LatLng>({ lat: MOCK_RIDER.lat, lng: MOCK_RIDER.lng });
 
   const { route: riderRoute, fetchRoute } = useOSRM();
 
-  // Immediately fetch route if starting already in matched phase (e.g. direct URL)
+  // ── Real-time rider movement: 1 step every second ────────────────────────
   useEffect(() => {
-    if (phase === "matched") {
-      fetchRoute(riderLocation, customerLocation);
-    }
-  }, []);
+    if (phase !== "matched") return;
+
+    // Total travel time: etaMin minutes
+    const totalSeconds = MOCK_RIDER.etaMin * 60;
+    let elapsed = 0;
+
+    const moveInterval = setInterval(() => {
+      elapsed += 1;
+      const progress = Math.min(elapsed / totalSeconds, 1);
+
+      const newPos: LatLng = {
+        lat: MOCK_RIDER.lat + (customerLocation.lat - MOCK_RIDER.lat) * progress,
+        lng: MOCK_RIDER.lng + (customerLocation.lng - MOCK_RIDER.lng) * progress,
+      };
+      setRiderPos(newPos);
+      riderPosRef.current = newPos;
+      setEtaSecondsLeft(Math.max(0, totalSeconds - elapsed));
+
+      if (progress >= 1) clearInterval(moveInterval);
+    }, 1000);
+
+    return () => clearInterval(moveInterval);
+  }, [phase]);
+
+  // ── Route refresh every 5 seconds as rider moves ─────────────────────────
+  useEffect(() => {
+    if (phase !== "matched") return;
+
+    // Fetch immediately on match
+    fetchRoute(riderPosRef.current, customerLocation);
+
+    const routeInterval = setInterval(() => {
+      fetchRoute(riderPosRef.current, customerLocation);
+    }, 5000);
+
+    return () => clearInterval(routeInterval);
+  }, [phase]);
 
   const nativeDriver = Platform.OS !== "web";
 
@@ -146,11 +183,21 @@ export default function DriverMatchScreen() {
     }
   };
 
-  // Map center — midpoint between customer and rider when matched
+  // ETA string for display — live countdown
+  const etaMin = Math.floor(etaSecondsLeft / 60);
+  const etaSec = etaSecondsLeft % 60;
+  const etaLabel =
+    etaSecondsLeft <= 0
+      ? "Arriving now"
+      : etaMin > 0
+      ? `${etaMin}m ${etaSec.toString().padStart(2, "0")}s`
+      : `${etaSec}s`;
+
+  // Map center tracks midpoint between live rider position and customer
   const mapCenter: LatLng =
     phase === "searching"
       ? customerLocation
-      : { lat: (customerLocation.lat + riderLocation.lat) / 2, lng: (customerLocation.lng + riderLocation.lng) / 2 };
+      : { lat: (customerLocation.lat + riderPos.lat) / 2, lng: (customerLocation.lng + riderPos.lng) / 2 };
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -160,7 +207,7 @@ export default function DriverMatchScreen() {
       <View style={styles.mapFill}>
         <WebMap
           pickup={customerLocation}
-          riderLocation={phase !== "searching" ? riderLocation : undefined}
+          riderLocation={phase !== "searching" ? riderPos : undefined}
           routeCoords={phase !== "searching" ? riderRoute?.coords : undefined}
           center={mapCenter}
           zoom={16}

@@ -177,34 +177,86 @@ export function WebMap({
         };
       }
 
-      // GPS location
+      // ── Continuous GPS tracking via watchPosition ──────────────────────────
+      // watchPosition fires every time the device position changes (≤1s on
+      // high-accuracy hardware, every few seconds on WiFi triangulation).
+      // maximumAge:0 prevents the browser returning a stale cached fix.
+      let watchId: number | null = null;
+      let firstFix = true;
+      let accuracyCircleRef: any = null;
+
       if (typeof navigator !== "undefined" && navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
+        watchId = navigator.geolocation.watchPosition(
           (pos) => {
             if (cancelled) return;
-            const { latitude, longitude } = pos.coords;
+            const { latitude, longitude, accuracy } = pos.coords;
             onLocationFoundRef.current?.(latitude, longitude);
-            userLocMarkerRef.current?.remove();
-            const icon = L.divIcon({
-              html: USER_LOCATION_HTML,
-              className: "",
-              iconSize: [24, 24],
-              iconAnchor: [12, 12],
-            });
-            userLocMarkerRef.current = L.marker([latitude, longitude], {
-              icon,
-              zIndexOffset: 500,
-            }).addTo(map);
-            map.flyTo([latitude, longitude], GULU_DEFAULT_ZOOM, { duration: 1.2 });
+
+            // Move marker to new position (or create it)
+            if (userLocMarkerRef.current) {
+              userLocMarkerRef.current.setLatLng([latitude, longitude]);
+            } else {
+              const icon = L.divIcon({
+                html: USER_LOCATION_HTML,
+                className: "",
+                iconSize: [24, 24],
+                iconAnchor: [12, 12],
+              });
+              userLocMarkerRef.current = L.marker([latitude, longitude], {
+                icon,
+                zIndexOffset: 500,
+              }).addTo(map);
+            }
+
+            // Draw accuracy circle (shows how accurate the fix is in metres)
+            accuracyCircleRef?.remove();
+            if (accuracy < 500) {
+              accuracyCircleRef = L.circle([latitude, longitude], {
+                radius: accuracy,
+                color: "#1a73e8",
+                fillColor: "#1a73e8",
+                fillOpacity: 0.08,
+                weight: 1.5,
+                opacity: 0.4,
+              }).addTo(map);
+            }
+
+            // Fly to location only on first fix; afterwards pan smoothly
+            if (firstFix) {
+              firstFix = false;
+              map.flyTo([latitude, longitude], GULU_DEFAULT_ZOOM, { duration: 1.2 });
+            } else {
+              // Gently keep location in view if it drifts near the edge
+              const bounds = map.getBounds();
+              const pad = 0.0005;
+              if (
+                latitude < bounds.getSouth() + pad ||
+                latitude > bounds.getNorth() - pad ||
+                longitude < bounds.getWest() + pad ||
+                longitude > bounds.getEast() - pad
+              ) {
+                map.panTo([latitude, longitude], { animate: true, duration: 0.5 });
+              }
+            }
           },
-          () => {},
-          { enableHighAccuracy: true, timeout: 8000 }
+          (err) => {
+            // Silent — permission denied or unavailable
+            console.warn("GPS:", err.message);
+          },
+          {
+            enableHighAccuracy: true,
+            maximumAge: 0,        // always fresh — no cached positions
+            timeout: 10000,
+          }
         );
       }
     });
 
     return () => {
       cancelled = true;
+      if (watchId !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(watchId);
+      }
       mapRef.current?.remove();
       mapRef.current = null;
     };
