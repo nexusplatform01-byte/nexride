@@ -79,11 +79,45 @@ const DEST_HTML = `
   </svg>
 </div>`;
 
-const USER_LOCATION_HTML = `
-<div style="position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;">
-  <div style="position:absolute;width:26px;height:26px;border-radius:50%;background:rgba(26,115,232,0.18);"></div>
-  <div style="width:14px;height:14px;border-radius:50%;background:#1a73e8;border:2.5px solid white;box-shadow:0 2px 8px rgba(26,115,232,0.6);"></div>
+/**
+ * Builds the GPS "you are here" marker HTML.
+ * When the device has a heading (direction of travel), a cone is drawn
+ * above the dot pointing in that direction — exactly like Google Maps.
+ */
+function makeUserDotHTML(heading: number | null): string {
+  const hasCone = heading !== null && isFinite(heading);
+  const cone = hasCone
+    ? `<div style="position:absolute;top:-18px;left:-18px;width:60px;height:60px;pointer-events:none;">
+        <svg width="60" height="60" viewBox="0 0 60 60" style="transform:rotate(${heading}deg)">
+          <defs>
+            <radialGradient id="cg" cx="50%" cy="80%" r="60%">
+              <stop offset="0%" stop-color="#1a73e8" stop-opacity="0.55"/>
+              <stop offset="100%" stop-color="#1a73e8" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <polygon points="30,4 42,32 30,26 18,32" fill="url(#cg)"/>
+        </svg>
+      </div>`
+    : "";
+  return `<div style="position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;">
+  ${cone}
+  <div style="position:absolute;width:36px;height:36px;border-radius:50%;background:rgba(26,115,232,0.14);top:-6px;left:-6px;"></div>
+  <div style="width:20px;height:20px;border-radius:50%;background:#1a73e8;border:3px solid white;box-shadow:0 2px 10px rgba(26,115,232,0.55);position:relative;z-index:1;"></div>
 </div>`;
+}
+
+/**
+ * Calculates compass bearing (0–360°, clockwise from north) between two
+ * lat/lng points. Used to rotate direction arrows along the route.
+ */
+function routeBearing(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const dLng = (lng2 - lng1) * (Math.PI / 180);
+  const φ1 = lat1 * (Math.PI / 180);
+  const φ2 = lat2 * (Math.PI / 180);
+  const y = Math.sin(dLng) * Math.cos(φ2);
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(dLng);
+  return (Math.atan2(y, x) * (180 / Math.PI) + 360) % 360;
+}
 
 const RIDER_MOTO_HTML = `
 <div style="background:#0F3F5C;border:3px solid white;border-radius:14px;padding:7px 12px;display:flex;align-items:center;gap:7px;box-shadow:0 4px 18px rgba(15,63,92,0.5);min-width:70px;white-space:nowrap;">
@@ -195,16 +229,24 @@ export function WebMap({
             const { latitude, longitude, accuracy } = pos.coords;
             onLocationFoundRef.current?.(latitude, longitude);
 
-            // Move marker to new position (or create it)
+            // Build icon with optional heading cone (Google Maps style)
+            const heading = (pos.coords as any).heading ?? null;
+            const dotHTML = makeUserDotHTML(
+              heading !== null && isFinite(heading) ? heading : null
+            );
+            const icon = L.divIcon({
+              html: dotHTML,
+              className: "",
+              iconSize: [24, 24],
+              iconAnchor: [12, 12],
+            });
+
+            // Move marker to new position (or create it); also refresh icon so
+            // heading cone updates every time the device direction changes
             if (userLocMarkerRef.current) {
               userLocMarkerRef.current.setLatLng([latitude, longitude]);
+              userLocMarkerRef.current.setIcon(icon);
             } else {
-              const icon = L.divIcon({
-                html: USER_LOCATION_HTML,
-                className: "",
-                iconSize: [24, 24],
-                iconAnchor: [12, 12],
-              });
               userLocMarkerRef.current = L.marker([latitude, longitude], {
                 icon,
                 zIndexOffset: 500,
@@ -366,7 +408,33 @@ export function WebMap({
           lineJoin: "round",
         }).addTo(mapRef.current);
 
-        routeLayersRef.current = [casing, line];
+        // ── Direction arrows along the route (Google Maps style) ─────────────
+        // Space ~7 arrows evenly. Each one is a small navy chevron rotated to
+        // point in the direction of travel on that segment of road.
+        const arrowLayers: any[] = [];
+        const n = latlngs.length;
+        if (n >= 4) {
+          const step = Math.max(3, Math.floor(n / 7));
+          for (let i = step; i < n - 2; i += step) {
+            // Look a couple points ahead so the arrow follows the road curve
+            const [lat1, lng1] = latlngs[i];
+            const [lat2, lng2] = latlngs[Math.min(i + 3, n - 1)];
+            const b = routeBearing(lat1, lng1, lat2, lng2);
+            const arrowHtml = `<svg width="14" height="18" viewBox="0 0 14 18" style="transform:rotate(${b}deg);display:block;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.3))"><polygon points="7,0 14,16 7,11 0,16" fill="#0F3F5C" opacity="0.88"/></svg>`;
+            const arrowIcon = L.divIcon({
+              html: arrowHtml,
+              className: "",
+              iconSize: [14, 18],
+              iconAnchor: [7, 9],
+            });
+            arrowLayers.push(
+              L.marker([lat1, lng1], { icon: arrowIcon, zIndexOffset: 300, interactive: false })
+                .addTo(mapRef.current!)
+            );
+          }
+        }
+
+        routeLayersRef.current = [casing, line, ...arrowLayers];
 
         if (fitBoundsOnRoute && pickup && destination) {
           const allLats = [pickup.lat, destination.lat];

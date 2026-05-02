@@ -47,7 +47,10 @@ export default function HomeScreen() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [query, setQuery] = useState("");
   const [destination, setDestination] = useState<NamedLocation | null>(null);
+  // Start at Gulu center; overwritten by first GPS fix from watchPosition
   const [pickupLocation, setPickupLocation] = useState<NamedLocation>(PICKUP_LOCATION);
+  // True once the first real GPS fix has been received
+  const [gpsReady, setGpsReady] = useState(false);
   const [selectedRide, setSelectedRide] = useState("motorbike");
   const [offerFare, setOfferFare] = useState(0);
 
@@ -57,6 +60,11 @@ export default function HomeScreen() {
   // locateMeRef is populated by WebMap whenever a fresh GPS fix arrives
   const locateMeRef = useRef<(() => void) | null>(null);
   const inputRef = useRef<TextInput>(null);
+
+  // Refs so GPS callback always has latest values without stale closures
+  const destinationRef = useRef<NamedLocation | null>(null);
+  const phaseRef = useRef<Phase>("idle");
+  const lastRouteFetchRef = useRef(0);
 
   const baseFare = route ? calcFare(route.distanceKm, selectedRide) : 0;
 
@@ -70,6 +78,10 @@ export default function HomeScreen() {
     }
   }, [phase]);
 
+  // Keep refs in sync with state so GPS callbacks avoid stale closures
+  useEffect(() => { destinationRef.current = destination; }, [destination]);
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
+
   useEffect(() => {
     const t = setTimeout(() => {
       if (query.length >= 2) search(query);
@@ -78,9 +90,23 @@ export default function HomeScreen() {
     return () => clearTimeout(t);
   }, [query]);
 
+  // ── GPS update handler ────────────────────────────────────────────────────
+  // Called by WebMap on every watchPosition fix (≤1s on high-accuracy devices)
   const handleLocationFound = useCallback((lat: number, lng: number) => {
-    setPickupLocation({ lat, lng, name: "Your location" });
-  }, []);
+    const gpsLoc: NamedLocation = { lat, lng, name: "Your location" };
+    setPickupLocation(gpsLoc);
+    setGpsReady(true);
+
+    // Re-fetch route immediately on first fix; then at most every 3 s while
+    // the customer is moving (debounced so we don't flood the routing API)
+    if (phaseRef.current === "route" && destinationRef.current) {
+      const now = Date.now();
+      if (now - lastRouteFetchRef.current >= 3000) {
+        lastRouteFetchRef.current = now;
+        fetchRoute(gpsLoc, destinationRef.current);
+      }
+    }
+  }, [fetchRoute]);
 
   const selectDestination = useCallback(
     async (place: NamedLocation) => {
@@ -89,6 +115,8 @@ export default function HomeScreen() {
       setPhase("route");
       setQuery("");
       clear();
+      // Reset debounce so next GPS update immediately re-fetches with fresh pickup
+      lastRouteFetchRef.current = Date.now();
       await fetchRoute(pickupLocation, place);
     },
     [fetchRoute, clear, pickupLocation]
@@ -103,6 +131,7 @@ export default function HomeScreen() {
       setPhase("route");
       setQuery("");
       clear();
+      lastRouteFetchRef.current = Date.now();
       await fetchRoute(pickupLocation, place);
     },
     [phase, fetchRoute, clear, pickupLocation]
@@ -420,16 +449,19 @@ export default function HomeScreen() {
               onPress={resetJourney}
               style={[styles.locRow, { borderBottomColor: colors.border }]}
             >
-              <View style={[styles.locDotPickup, { backgroundColor: colors.primary }]}>
+              {/* Pulsing blue dot when GPS is still acquiring, solid when ready */}
+              <View style={[styles.locDotPickup, { backgroundColor: gpsReady ? colors.primary : "#1a73e8" }]}>
                 <View style={styles.locDotInner} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.locLabel, { color: colors.mutedForeground }]}>Pickup</Text>
+                <Text style={[styles.locLabel, { color: colors.mutedForeground }]}>
+                  {gpsReady ? "Pickup · GPS" : "Pickup"}
+                </Text>
                 <Text style={[styles.locValue, { color: colors.foreground }]} numberOfLines={1}>
-                  {pickupLocation.name}
+                  {gpsReady ? pickupLocation.name : "Getting your location…"}
                 </Text>
               </View>
-              <Feather name="edit-2" size={13} color={colors.mutedForeground} />
+              {gpsReady && <Feather name="edit-2" size={13} color={colors.mutedForeground} />}
             </Pressable>
 
             <Pressable

@@ -83,14 +83,57 @@ router.get("/route", async (req, res) => {
   const tLng = parseFloat(to_lng);
   const tLat = parseFloat(to_lat);
 
-  // Try live OSRM endpoints first
+  // ── 1. Try Valhalla (openstreetmap.de) — real road data, reliable from server ─
+  try {
+    const valhallaResp = await fetch("https://valhalla1.openstreetmap.de/route", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        locations: [
+          { lon: fLng, lat: fLat, type: "break" },
+          { lon: tLng, lat: tLat, type: "break" },
+        ],
+        costing: "motorcycle",
+        shape_format: "geojson",
+        directions_options: { language: "en-US" },
+      }),
+      signal: AbortSignal.timeout(7000),
+    });
+    if (valhallaResp.ok) {
+      const vData = await valhallaResp.json() as {
+        trip?: {
+          legs?: Array<{ shape: any }>;
+          summary?: { length: number; time: number };
+        };
+      };
+      const leg = vData?.trip?.legs?.[0];
+      const summary = vData?.trip?.summary;
+      if (leg?.shape && summary) {
+        // shape may be a GeoJSON LineString object or a JSON string of one
+        const geo = typeof leg.shape === "string" ? JSON.parse(leg.shape) : leg.shape;
+        const coords: [number, number][] = geo.coordinates ?? geo;
+        res.json({
+          coords,
+          distanceKm: Math.round(summary.length * 10) / 10,
+          durationMin: Math.max(1, Math.round(summary.time / 60)),
+          source: "valhalla",
+        });
+        return;
+      }
+    }
+  } catch {
+    // try next
+  }
+
+  // ── 2. Try OSRM public mirrors ───────────────────────────────────────────────
   const coord = `${from_lng},${from_lat};${to_lng},${to_lat}`;
-  const endpoints = [
+  const osrmEndpoints = [
     `https://router.project-osrm.org/route/v1/driving/${coord}?overview=full&geometries=geojson`,
     `https://routing.openstreetmap.de/routed-car/route/v1/driving/${coord}?overview=full&geometries=geojson`,
+    `https://routing.openstreetmap.de/routed-bike/route/v1/driving/${coord}?overview=full&geometries=geojson`,
   ];
 
-  for (const url of endpoints) {
+  for (const url of osrmEndpoints) {
     try {
       const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
       if (!resp.ok) continue;
