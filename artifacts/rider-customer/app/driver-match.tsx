@@ -79,6 +79,8 @@ export default function DriverMatchScreen() {
   const riderPosRef = useRef<LatLng>({ lat: MOCK_RIDER.lat, lng: MOCK_RIDER.lng });
 
   const { route: riderRoute, fetchRoute } = useOSRM();
+  const recenterRef = useRef<((lat: number, lng: number, zoom?: number) => void) | null>(null);
+  const locateMeRef = useRef<(() => void) | null>(null);
 
   // ── Real-time rider movement: 1 step every second ────────────────────────
   useEffect(() => {
@@ -212,6 +214,8 @@ export default function DriverMatchScreen() {
           center={mapCenter}
           zoom={16}
           fitBoundsOnRoute={false}
+          recenterRef={recenterRef}
+          locateMeRef={locateMeRef}
         />
       </View>
 
@@ -231,6 +235,18 @@ export default function DriverMatchScreen() {
           </View>
         )}
       </View>
+
+      {/* Locate Me button — flies map to user's live GPS position */}
+      <PressableScale
+        style={[styles.locateBtn, { top: topInset + 8 }]}
+        onPress={() => locateMeRef.current?.()}
+      >
+        <View style={styles.locateDotRing}>
+          <View style={styles.locateDotInner} />
+        </View>
+        <View style={[styles.crossH, { backgroundColor: "#1a73e8" }]} />
+        <View style={[styles.crossV, { backgroundColor: "#1a73e8" }]} />
+      </PressableScale>
 
       {/* ══════════ SEARCHING PHASE ══════════ */}
       {phase === "searching" && (
@@ -351,7 +367,7 @@ export default function DriverMatchScreen() {
                 <View style={[styles.etaBadge, { backgroundColor: colors.secondary }]}>
                   <MaterialCommunityIcons name="motorbike" size={12} color={colors.primary} />
                   <Text style={[styles.etaText, { color: colors.primary }]}>
-                    {MOCK_RIDER.etaMin} min away
+                    {etaLabel}
                   </Text>
                 </View>
                 <View style={[styles.etaBadge, { backgroundColor: colors.secondary }]}>
@@ -698,6 +714,53 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   safetyText: { fontSize: 11, fontFamily: "Inter_500Medium", flex: 1 },
+
+  locateBtn: {
+    position: "absolute",
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 10,
+    elevation: 5,
+    zIndex: 15,
+  },
+  locateDotRing: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: "#1a73e8",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "absolute",
+  },
+  locateDotInner: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: "#1a73e8",
+  },
+  crossH: {
+    position: "absolute",
+    width: 28,
+    height: 1.5,
+    borderRadius: 1,
+    opacity: 0.4,
+  },
+  crossV: {
+    position: "absolute",
+    width: 1.5,
+    height: 28,
+    borderRadius: 1,
+    opacity: 0.4,
+  },
 
   actionRow: { flexDirection: "row", gap: 8, alignItems: "center" },
   actionBtnRound: {

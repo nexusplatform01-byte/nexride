@@ -12,6 +12,7 @@ type Props = {
   onTap?: (lat: number, lng: number) => void;
   onLocationFound?: (lat: number, lng: number) => void;
   recenterRef?: MutableRefObject<((lat: number, lng: number, zoom?: number) => void) | null>;
+  locateMeRef?: MutableRefObject<(() => void) | null>;
   center?: LatLng;
   zoom?: number;
   showRiders?: boolean;

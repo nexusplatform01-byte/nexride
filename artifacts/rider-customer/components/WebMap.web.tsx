@@ -11,6 +11,8 @@ type Props = {
   onTap?: (lat: number, lng: number) => void;
   onLocationFound?: (lat: number, lng: number) => void;
   recenterRef?: MutableRefObject<((lat: number, lng: number, zoom?: number) => void) | null>;
+  /** When set, this ref is populated with a function that flies the map to the latest GPS fix */
+  locateMeRef?: MutableRefObject<(() => void) | null>;
   center?: LatLng;
   zoom?: number;
   showRiders?: boolean;
@@ -107,6 +109,7 @@ export function WebMap({
   onTap,
   onLocationFound,
   recenterRef,
+  locateMeRef,
   center,
   zoom = GULU_DEFAULT_ZOOM,
   showRiders = false,
@@ -206,6 +209,13 @@ export function WebMap({
                 icon,
                 zIndexOffset: 500,
               }).addTo(map);
+            }
+
+            // Keep locateMeRef pointing at the freshest GPS fix so the
+            // "locate me" button always flies to the real current position
+            if (locateMeRef) {
+              locateMeRef.current = () =>
+                map.flyTo([latitude, longitude], GULU_DEFAULT_ZOOM, { duration: 0.9 });
             }
 
             // Draw accuracy circle (shows how accurate the fix is in metres)

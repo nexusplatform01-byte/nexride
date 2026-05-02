@@ -54,6 +54,8 @@ export default function HomeScreen() {
   const { results, loading: searchLoading, search, clear } = useNominatim();
   const { route, loading: routeLoading, fetchRoute, clearRoute } = useOSRM();
   const recenterRef = useRef<((lat: number, lng: number, zoom?: number) => void) | null>(null);
+  // locateMeRef is populated by WebMap whenever a fresh GPS fix arrives
+  const locateMeRef = useRef<(() => void) | null>(null);
   const inputRef = useRef<TextInput>(null);
 
   const baseFare = route ? calcFare(route.distanceKm, selectedRide) : 0;
@@ -127,6 +129,7 @@ export default function HomeScreen() {
           onTap={handleMapTap}
           onLocationFound={handleLocationFound}
           recenterRef={recenterRef}
+          locateMeRef={locateMeRef}
           center={GULU_CENTER}
           showRiders={phase === "idle"}
           nearbyRiders={NEARBY_RIDERS}
@@ -168,15 +171,22 @@ export default function HomeScreen() {
             </View>
           </Pressable>
 
-          {/* Recenter */}
+          {/* Locate Me button */}
           <PressableScale
             style={[
               styles.recenter,
-              { backgroundColor: colors.card, bottom: tabBarH + 100 },
+              { backgroundColor: "#fff", bottom: tabBarH + 100 },
             ]}
-            onPress={() => recenterRef.current?.(pickupLocation.lat, pickupLocation.lng)}
+            onPress={() => locateMeRef.current?.()}
           >
-            <Feather name="navigation" size={18} color={colors.primary} />
+            {/* Outer ring */}
+            <View style={styles.locateDotRing}>
+              {/* Filled blue dot */}
+              <View style={styles.locateDotInner} />
+            </View>
+            {/* Crosshair lines */}
+            <View style={[styles.crossH, { backgroundColor: "#1a73e8" }]} />
+            <View style={[styles.crossV, { backgroundColor: "#1a73e8" }]} />
           </PressableScale>
 
           {/* Quick destinations — sits just ABOVE the tab bar */}
@@ -661,11 +671,42 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 3,
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 10,
+    elevation: 5,
     zIndex: 10,
+  },
+  locateDotRing: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: "#1a73e8",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "absolute",
+  },
+  locateDotInner: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: "#1a73e8",
+  },
+  crossH: {
+    position: "absolute",
+    width: 28,
+    height: 1.5,
+    borderRadius: 1,
+    opacity: 0.4,
+  },
+  crossV: {
+    position: "absolute",
+    width: 1.5,
+    height: 28,
+    borderRadius: 1,
+    opacity: 0.4,
   },
 
   idleSheet: {
